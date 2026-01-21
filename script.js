@@ -16,11 +16,31 @@ let currentTweetData = {
     bookmarks: '1.3K'
 };
 
-// 自动生成合理的推文数据
+// 自动生成合理的推文数据（默认前3小时）
 function autoGenerateTweetData() {
-    // 自动设置推文时间为当前时间的前3小时
+    generateTweetData(false);
+}
+
+// 生成随机当天时间和数据
+function generateRandomTweetData() {
+    generateTweetData(true);
+}
+
+// 核心生成函数
+function generateTweetData(randomTime) {
+    // 设置推文时间
     const now = new Date();
-    const tweetTime = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+    let tweetTime;
+    
+    if (randomTime) {
+        // 生成当天的随机时间（00:00 - 当前时间）
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const randomMs = Math.random() * (now - startOfDay);
+        tweetTime = new Date(startOfDay.getTime() + randomMs);
+    } else {
+        // 默认：当前时间的前3小时
+        tweetTime = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+    }
     
     // 格式化时间为 "下午12:48 · 2025/11/26" 格式
     const hours = tweetTime.getHours();
@@ -85,6 +105,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 页面加载时自动生成推文数据
     autoGenerateTweetData();
+    
+    // 加载保存的风格设置
+    loadDarkModeSetting();
     
     // 初始渲染一次（如果有保存的内容）
     // const savedContent = localStorage.getItem('sourceContent');
@@ -291,24 +314,49 @@ function updateCardTweetData(card) {
 // 设置源编辑器
 function setupSourceEditor() {
     const editor = document.getElementById('sourceEditor');
-    const maxCharsInput = document.getElementById('maxChars');
+    const maxLinesInput = document.getElementById('maxLines');
     let timeout;
 
     const triggerLayout = () => {
         clearTimeout(timeout);
         timeout = setTimeout(() => {
+            // 简化流程：只清理样式，直接生成卡片，不进行自动排版
+            cleanEditorStyles(editor);
             autoLayout();
-        }, 800);
+        }, 100); // 减少延迟时间，提高响应速度
     };
 
+    // 监听多种事件，确保各种操作都能触发更新
     editor.addEventListener('input', triggerLayout);
-    maxCharsInput.addEventListener('input', triggerLayout);
+    editor.addEventListener('keydown', (e) => {
+        // 监听回车键，确保手动换行时触发更新
+        if (e.key === 'Enter') {
+            setTimeout(() => {
+                cleanEditorStyles(editor);
+                autoLayout();
+            }, 0);
+        }
+    });
+    maxLinesInput.addEventListener('input', triggerLayout);
 
-    // 处理粘贴（去除格式，保留图片）
+    // 处理粘贴（只清理样式，直接生成卡片）
     editor.addEventListener('paste', (e) => {
         setTimeout(() => {
             cleanEditorStyles(editor);
+            autoLayout();
         }, 0);
+    });
+    
+    // 添加Mutation Observer监听内容变化，确保所有修改都被捕获
+    const observer = new MutationObserver(() => {
+        triggerLayout();
+    });
+    
+    observer.observe(editor, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+        characterDataOldValue: true
     });
 }
 
@@ -320,18 +368,119 @@ function cleanEditorStyles(editor) {
     });
 }
 
+// 自动排版内容，处理换行和段落，保留图片
+function autoFormatContent(editor) {
+    // 获取编辑器内容
+    const content = editor.innerHTML;
+    
+    // 创建一个临时容器来处理内容
+    const tempContainer = document.createElement('div');
+    tempContainer.innerHTML = content;
+    
+    // 处理所有文本节点，保留图片等媒体元素
+    const processNode = (node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+            let text = node.textContent;
+            
+            // 去除多余空格
+            text = text.replace(/\s+/g, ' ').trim();
+            
+            if (text) {
+                // 处理句子：在句号、问号、感叹号后添加适当的换行
+                text = text.replace(/([。！？\.!\?])([^\s])/g, '$1\n$2');
+                
+                // 处理长句子：仅在句子长度超过120字符时，在逗号、分号后添加换行
+                if (text.length > 120) {
+                    text = text.replace(/([，,；;])([^\s])/g, '$1\n$2');
+                }
+                
+                // 去除多余的空行（只保留最多1个连续换行）
+                text = text.replace(/\n{2,}/g, '\n');
+                
+                // 创建新的文本节点和br标签
+                const parts = text.split('\n');
+                const parent = node.parentNode;
+                let currentNode = node;
+                
+                parts.forEach((part, index) => {
+                    if (part) {
+                        // 替换当前文本节点
+                        const newTextNode = document.createTextNode(part);
+                        if (currentNode === node) {
+                            parent.replaceChild(newTextNode, currentNode);
+                        } else {
+                            parent.insertBefore(newTextNode, currentNode);
+                        }
+                    }
+                    
+                    // 添加br标签（除了最后一个部分）
+                    if (index < parts.length - 1) {
+                        const br = document.createElement('br');
+                        parent.insertBefore(br, currentNode);
+                    }
+                });
+                
+                // 如果原节点被完全替换，移除它
+                if (currentNode === node && !parent.contains(node)) {
+                    // 节点已被替换
+                }
+            } else {
+                // 移除空文本节点
+                node.parentNode.removeChild(node);
+            }
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+            // 递归处理子节点
+            Array.from(node.childNodes).forEach(child => processNode(child));
+            
+            // 移除空的容器节点
+            if (node.tagName !== 'IMG' && node.innerHTML.trim() === '') {
+                node.parentNode.removeChild(node);
+            }
+        }
+    };
+    
+    // 处理所有子节点
+    Array.from(tempContainer.childNodes).forEach(node => processNode(node));
+    
+    // 确保没有连续的br标签
+    let current = tempContainer.firstChild;
+    while (current && current.nextSibling) {
+        if (current.nodeName === 'BR' && current.nextSibling.nodeName === 'BR') {
+            const next = current.nextSibling;
+            current.parentNode.removeChild(next);
+        } else {
+            current = current.nextSibling;
+        }
+    }
+    
+    // 更新编辑器内容
+    editor.innerHTML = tempContainer.innerHTML;
+    
+    // 触发自动排版
+    autoLayout();
+}
+
 // 核心功能：自动排版
 function autoLayout() {
     const editor = document.getElementById('sourceEditor');
     const previewPanel = document.getElementById('previewPanel');
     const template = document.getElementById('cardTemplate');
 
-    // 获取内容节点
+    // 获取编辑器内容
+    const content = editor.innerText.trim();
     const nodes = Array.from(editor.childNodes);
-    if (nodes.length === 0 && editor.innerText.trim() === '') return;
+    
+    // 只有当编辑器真正为空时才返回
+    if (content === '' && nodes.length === 0) return;
 
     // 分割内容
-    const pages = splitContent(nodes);
+    let pages = splitContent(nodes);
+    
+    // 确保至少有一个页面
+    if (pages.length === 0 && content !== '') {
+        // 如果没有生成页面，但编辑器有内容，创建一个包含所有内容的页面
+        pages = [content.replace(/\n/g, '<br>')];
+    }
 
     // 清空预览区
     previewPanel.innerHTML = '';
@@ -356,139 +505,76 @@ function autoLayout() {
 
         previewPanel.appendChild(card);
     });
+    
+    // 应用保存的风格设置
+    const isDarkMode = localStorage.getItem('darkMode') === 'true';
+    applyDarkMode(isDarkMode);
 }
 
-// 内容分割逻辑
+// 内容分割逻辑 - 修复复制文案后右侧不见的问题
 function splitContent(nodes) {
     const pages = [];
-    let currentBuffer = document.createElement('div');
-    let currentTextLength = 0;
-
-    // 换行符占用的"虚拟字符数"，降低成本以更准确反映实际字数
-    const NEWLINE_COST = 10;
-
-    // 获取字数限制 - 修复：确保正确获取输入值
-    const maxCharsInput = document.getElementById('maxChars');
-    const MAX_CHARS = parseInt(maxCharsInput.value) || 200;
-    console.log('当前设置的每页字数:', MAX_CHARS);
+    const maxLinesInput = document.getElementById('maxLines');
+    const MAX_LINES = parseInt(maxLinesInput.value) || 10;
     
-    // 图片占用的虚拟字数，降低成本以允许更多内容
-    const IMG_COST = 30;
-
-    const pushPage = () => {
-        if (currentBuffer.childNodes.length > 0) {
-            pages.push(currentBuffer.innerHTML);
-            currentBuffer = document.createElement('div');
-            currentTextLength = 0;
-        }
-    };
-
-    // 递归处理节点
-    function processNode(node) {
-        if (node.nodeType === Node.TEXT_NODE) {
-            let text = node.textContent;
-            if (!text) return;
-
-            // 修复：直接处理整个文本，不按换行符分割
-            let remainingText = text;
-            
-            while (remainingText.length > 0) {
-                const availableSpace = MAX_CHARS - currentTextLength;
-                
-                if (availableSpace <= 0) {
-                    // 当前页已满，创建新页
-                    pushPage();
-                    continue;
-                }
-                
-                if (remainingText.length <= availableSpace) {
-                    // 剩余文本可以全部放入当前页
-                    currentBuffer.appendChild(document.createTextNode(remainingText));
-                    currentTextLength += remainingText.length;
-                    remainingText = '';
-                } else {
-                    // 剩余文本太长，需要分割
-                    let splitIndex = availableSpace;
-                    
-                    // 尝试在空格或标点处分割，避免单词被截断
-                    const lastSpaceIndex = remainingText.lastIndexOf(' ', splitIndex);
-                    if (lastSpaceIndex > splitIndex - 20) {
-                        splitIndex = lastSpaceIndex;
+    console.log('当前设置的每页行数:', MAX_LINES);
+    
+    // 获取编辑器的完整文本内容，确保能处理复制的文案
+    const fullText = document.getElementById('sourceEditor').innerText;
+    
+    // 收集所有实际内容行
+    const allContentLines = [];
+    
+    // 优先使用完整文本处理，确保能正确处理复制的文案
+    if (fullText.trim() !== '') {
+        // 按换行符分割完整文本
+        const textLines = fullText.split('\n');
+        textLines.forEach(line => {
+            if (line.trim() !== '') {
+                allContentLines.push(line);
+            }
+        });
+    } else {
+        // 只有当完整文本为空时，才处理节点
+        nodes.forEach(node => {
+            if (node.nodeType === Node.TEXT_NODE) {
+                const textLines = node.textContent.split('\n');
+                textLines.forEach(line => {
+                    if (line.trim() !== '') {
+                        allContentLines.push(line);
                     }
-                    
-                    // 如果找不到合适的分割点，就直接按字数分割
-                    if (splitIndex <= 0) {
-                        splitIndex = availableSpace;
-                    }
-                    
-                    const chunk = remainingText.substring(0, splitIndex);
-                    currentBuffer.appendChild(document.createTextNode(chunk));
-                    pushPage();
-                    remainingText = remainingText.substring(splitIndex).trimStart();
-                }
+                });
+            } else if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'IMG') {
+                allContentLines.push(node.outerHTML);
             }
-
-        } else if (node.tagName === 'BR') {
-            // 处理换行符
-            currentBuffer.appendChild(document.createElement('br'));
-            currentTextLength += NEWLINE_COST;
-            if (currentTextLength >= MAX_CHARS) {
-                pushPage();
-            }
-        } else if (node.tagName === 'IMG') {
-            // 处理图片：允许图片和文字出现在同一页
-            const imgClone = node.cloneNode(true);
-            // 添加样式限制图片尺寸，确保适应推文卡片宽度
-            imgClone.style.maxWidth = '100%';
-            imgClone.style.height = 'auto';
-            imgClone.style.display = 'block';
-            imgClone.style.margin = '10px 0';
-            imgClone.style.borderRadius = '12px';
-            
-            // 如果添加图片会超过限制，先分页
-            if (currentTextLength + IMG_COST > MAX_CHARS) {
-                pushPage();
-            }
-            
-            currentBuffer.appendChild(imgClone);
-            currentTextLength += IMG_COST;
-            
-            // 如果添加图片后超过限制，分页
-            if (currentTextLength >= MAX_CHARS) {
-                pushPage();
-            }
-        } else {
-            // 处理容器节点
-            const isBlock = ['DIV', 'P', 'H1', 'H2', 'H3', 'LI'].includes(node.tagName);
-            
-            // 块级元素前添加换行
-            if (isBlock && currentTextLength > 0) {
-                currentBuffer.appendChild(document.createElement('br'));
-                currentTextLength += NEWLINE_COST;
-                if (currentTextLength >= MAX_CHARS) {
-                    pushPage();
-                }
-            }
-            
-            // 递归处理子节点
-            Array.from(node.childNodes).forEach(child => processNode(child));
-            
-            // 块级元素后添加换行
-            if (isBlock) {
-                currentBuffer.appendChild(document.createElement('br'));
-                currentTextLength += NEWLINE_COST;
-                if (currentTextLength >= MAX_CHARS) {
-                    pushPage();
-                }
-            }
+        });
+    }
+    
+    console.log('总共有', allContentLines.length, '行内容');
+    
+    // 如果没有收集到行，但有完整文本，直接使用完整文本
+    if (allContentLines.length === 0 && fullText.trim() !== '') {
+        allContentLines.push(fullText);
+    }
+    
+    // 基于行数进行分页
+    for (let i = 0; i < allContentLines.length; i += MAX_LINES) {
+        // 获取当前页的行
+        const pageLines = allContentLines.slice(i, i + MAX_LINES);
+        
+        // 将行转换为HTML，每行后面添加<br>标签
+        const pageHTML = pageLines.join('<br>');
+        
+        if (pageHTML.trim()) {
+            pages.push(pageHTML);
         }
     }
     
-    // 处理所有节点
-    nodes.forEach(node => processNode(node));
-    
-    // 推送最后一页
-    pushPage();
+    // 确保至少生成一个页面
+    if (pages.length === 0 && allContentLines.length > 0) {
+        const pageHTML = allContentLines.join('<br>');
+        pages.push(pageHTML);
+    }
     
     console.log('生成的页数:', pages.length);
     return pages;
@@ -628,6 +714,42 @@ function resetContent() {
         // 恢复默认卡片
         autoLayout();
     }
+}
+
+// 切换黑底白字风格
+function toggleDarkMode() {
+    // 切换风格状态
+    const isDarkMode = !localStorage.getItem('darkMode') || localStorage.getItem('darkMode') === 'false';
+    localStorage.setItem('darkMode', isDarkMode.toString());
+    
+    // 应用风格
+    applyDarkMode(isDarkMode);
+}
+
+// 应用黑底白字风格
+function applyDarkMode(isDarkMode) {
+    // 获取所有推文卡片
+    const cards = document.querySelectorAll('.phone-container');
+    
+    // 为每个卡片应用或移除dark-mode类
+    cards.forEach(card => {
+        if (isDarkMode) {
+            card.classList.add('dark-mode');
+        } else {
+            card.classList.remove('dark-mode');
+        }
+    });
+}
+
+// 保存黑底白字风格设置
+function saveDarkModeSetting(isDarkMode) {
+    localStorage.setItem('darkMode', isDarkMode.toString());
+}
+
+// 加载黑底白字风格设置
+function loadDarkModeSetting() {
+    const isDarkMode = localStorage.getItem('darkMode') === 'true';
+    applyDarkMode(isDarkMode);
 }
 
 console.log('Twitter 自动排版编辑器已加载');

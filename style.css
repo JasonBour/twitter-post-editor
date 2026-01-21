@@ -8,9 +8,23 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background: #f0f2f5;
     margin: 0;
-    height: 100vh;
-    overflow: hidden;
+    height: auto;
+    min-height: 100vh;
+    overflow: auto;
     display: block;
+}
+
+/* 修复页面滚动问题 */
+.app-container {
+    overflow: visible;
+}
+
+/* 确保预览区可以正常滚动 */
+.preview-panel {
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    z-index: 1;
 }
 
 .phone-container {
@@ -25,6 +39,141 @@ body {
     flex-direction: column;
     flex-shrink: 0;
     transform-origin: top center;
+}
+
+/* 黑底白字风格 */
+.phone-container.dark-mode {
+    background: #15181c;
+}
+
+.phone-container.dark-mode .status-bar {
+    background: #15181c;
+    border-bottom: 1px solid #2f3336;
+}
+
+.phone-container.dark-mode .nav-bar {
+    background: #15181c;
+    border-bottom: 1px solid #2f3336;
+}
+
+.phone-container.dark-mode .nav-bar button {
+    color: #f5f5f5;
+}
+
+.phone-container.dark-mode .page-title {
+    color: #f5f5f5;
+}
+
+.phone-container.dark-mode .content {
+    background: #15181c;
+    color: #f5f5f5;
+}
+
+.phone-container.dark-mode .username {
+    color: #f5f5f5;
+}
+
+.phone-container.dark-mode .username:focus {
+    background: #2f3336;
+}
+
+.phone-container.dark-mode .handle {
+    color: #8b98a5;
+}
+
+.phone-container.dark-mode .handle:focus {
+    background: #2f3336;
+}
+
+.phone-container.dark-mode .follow-btn {
+    background: #f5f5f5;
+    color: #15181c;
+}
+
+.phone-container.dark-mode .follow-btn:hover {
+    background: #e1e1e1;
+}
+
+.phone-container.dark-mode .post-content {
+    color: #f5f5f5;
+}
+
+.phone-container.dark-mode .post-content:focus {
+    background: #2f3336;
+}
+
+.phone-container.dark-mode .post-meta {
+    color: #8b98a5;
+    border-top: 1px solid #2f3336;
+    border-bottom: 1px solid #2f3336;
+}
+
+.phone-container.dark-mode .post-time,
+.phone-container.dark-mode .views {
+    color: #8b98a5;
+}
+
+.phone-container.dark-mode .post-time:focus,
+.phone-container.dark-mode .views:focus {
+    background: #2f3336;
+}
+
+.phone-container.dark-mode .separator {
+    color: #8b98a5;
+}
+
+.phone-container.dark-mode .views-text {
+    color: #8b98a5;
+}
+
+.phone-container.dark-mode .interaction-bar {
+    border-bottom: 1px solid #2f3336;
+}
+
+.phone-container.dark-mode .icon {
+    fill: #8b98a5;
+}
+
+.phone-container.dark-mode .count {
+    color: #8b98a5;
+}
+
+.phone-container.dark-mode .count:focus {
+    background: #2f3336;
+}
+
+.phone-container.dark-mode .comment-item:hover .icon,
+.phone-container.dark-mode .retweet-item:hover .icon,
+.phone-container.dark-mode .like-item:hover .icon,
+.phone-container.dark-mode .bookmark-item:hover .icon,
+.phone-container.dark-mode .share-item:hover .icon {
+    fill: #1d9bf0;
+}
+
+.phone-container.dark-mode .comment-item:hover .count,
+.phone-container.dark-mode .retweet-item:hover .count,
+.phone-container.dark-mode .like-item:hover .count,
+.phone-container.dark-mode .bookmark-item:hover .count {
+    color: #1d9bf0;
+}
+
+.phone-container.dark-mode .reply-input {
+    background: #2f3336;
+    color: #f5f5f5;
+    border: 1px solid #536471;
+}
+
+.phone-container.dark-mode .bottom-nav {
+    background: #15181c;
+    border-top: 1px solid #2f3336;
+}
+
+.phone-container.dark-mode .nav-icon {
+    fill: #8b98a5;
+}
+
+.phone-container.dark-mode .nav-item.active .nav-icon {
+    fill: #1d9bf0;
 }
 
 /* 状态栏 */
@@ -389,17 +538,46 @@ body {
 /* 编辑控制面板 */
 .edit-panel {
     background: white;
-    border-radius: 20px;
-    padding: 30px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
     animation: slideIn 0.5s ease;
     position: fixed;
-    bottom: 30px;
-    right: 30px;
+    bottom: 20px;
+    right: 20px;
     z-index: 100;
-    max-height: 80vh;
+    max-height: 50vh;
     overflow-y: auto;
-    width: 350px;
+    width: 280px;
+    max-width: calc(100vw - 40px);
+    transition: all 0.3s ease;
+}
+
+/* 优化编辑控制面板的内容布局 */
+.edit-section {
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.edit-btn {
+    padding: 10px 16px;
+    font-size: 14px;
+    border-radius: 10px;
+}
+
+.edit-tips {
+    font-size: 13px;
+    padding: 12px;
+}
+
+.edit-tips p {
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.edit-tips li {
+    margin-bottom: 4px;
+    padding-left: 16px;
 }
 
 @keyframes slideIn {
@@ -533,32 +711,111 @@ body {
     overflow-y: auto;
 }
 
+/* 移动端响应式设计 */
+@media (max-width: 1024px) {
+    .app-container {
+        flex-direction: column;
+        overflow-y: auto;
+        height: auto;
+        min-height: 100vh;
+    }
+    
+    .input-panel {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #e1e8ed;
+        min-height: 40vh;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    }
+    
+    .data-editor-panel {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #e1e8ed;
+        min-height: 30vh;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    }
+    
+    .preview-panel {
+        width: 100%;
+        padding: 20px;
+    }
+    
+    /* 优化移动端按钮和输入框 */
+    .data-input {
+        padding: 14px 18px;
+        font-size: 16px;
+    }
+    
+    .update-btn {
+        padding: 14px 20px;
+        font-size: 16px;
+    }
+    
+    /* 优化移动端字体大小 */
+    .panel-header h2 {
+        font-size: 24px;
+    }
+    
+    .edit-row label {
+        font-size: 15px;
+    }
+    
+    /* 优化移动端的操作体验 */
+    .controls {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+    }
+    
+    .action-row {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    /* 优化手机容器在移动端的显示 */
+    .phone-container {
+        width: 100%;
+        max-width: 390px;
+        margin: 0 auto;
+    }
+}
+
 .data-editor-content {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
 }
 
 .edit-row {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
 }
 
 .edit-row label {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     color: #0f1419;
+    margin-bottom: 2px;
 }
 
 .data-input {
-    padding: 12px 16px;
+    padding: 10px 14px;
     border: 2px solid #eff3f4;
-    border-radius: 12px;
-    font-size: 15px;
+    border-radius: 8px;
+    font-size: 14px;
     outline: none;
     transition: all 0.2s;
     background: white;
+    min-height: 40px;
+    width: 100%;
+}
+
+/* 调整时间字段为跨列显示 */
+.edit-row:nth-child(1) {
+    grid-column: 1 / -1;
 }
 
 .data-input:focus {
@@ -567,33 +824,148 @@ body {
 }
 
 .action-row {
-    margin-top: 10px;
-    padding-top: 15px;
+    margin-top: 12px;
+    padding-top: 12px;
     border-top: 1px solid #e1e8ed;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 8px;
+    grid-column: 1 / -1;
 }
 
 .update-btn {
-    width: 100%;
     background: linear-gradient(135deg, #1d9bf0 0%, #0f70c7 100%);
     color: white;
     border: none;
-    padding: 14px 20px;
-    border-radius: 12px;
-    font-size: 16px;
-    font-weight: 700;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.3s;
-    box-shadow: 0 4px 15px rgba(29, 155, 240, 0.3);
+    box-shadow: 0 2px 6px rgba(29, 155, 240, 0.3);
+    margin: 0;
+    min-height: 32px;
+    width: 100%;
+}
+
+/* 优化数据编辑面板的整体样式 */
+.data-editor-panel {
+    padding: 16px;
+    overflow-y: auto;
+}
+
+/* 辅助按钮样式 */
+.secondary-actions {
+    gap: 6px;
+    margin-top: 6px;
+    padding-top: 8px;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+}
+
+.secondary-actions .update-btn {
+    font-size: 11px;
+    padding: 7px 10px;
+    min-height: 30px;
+}
+
+/* 清空内容按钮样式 */
+.clear-btn {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+}
+
+/* 优化顶部样式 */
+.panel-header {
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e1e8ed;
+    display: flex;
+    align-items: center;
+}
+
+.panel-header h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 800;
+    color: #0f1419;
+}
+
+/* 优化控制面板 */
+.controls {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* 确保在移动端按钮和输入框有足够的点击区域 */
+input[type="number"] {
+    min-height: 40px;
+    min-width: 80px;
+}
+
+button {
+    min-height: 40px;
+    min-width: 80px;
 }
 
 .update-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(29, 155, 240, 0.4);
+    box-shadow: 0 6px 16px rgba(29, 155, 240, 0.4);
     background: linear-gradient(135deg, #1a8cd8 0%, #0d66a6 100%);
 }
 
 .update-btn:active {
     transform: translateY(0);
+}
+
+/* 生成按钮样式 */
+.generate-btn {
+    background: linear-gradient(135deg, #00ba7c 0%, #008a5c 100%);
+    box-shadow: 0 3px 8px rgba(0, 186, 124, 0.3);
+}
+
+/* 辅助按钮样式 */
+.secondary-actions {
+    gap: 6px;
+    margin-top: 6px;
+    padding-top: 10px;
+}
+
+.avatar-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3);
+}
+
+.export-btn {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    box-shadow: 0 3px 8px rgba(245, 158, 11, 0.3);
+}
+
+.format-btn {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    box-shadow: 0 3px 8px rgba(139, 92, 246, 0.3);
+}
+
+.dark-mode-btn {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    box-shadow: 0 3px 8px rgba(59, 130, 246, 0.3);
+}
+
+.reset-btn {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    box-shadow: 0 3px 8px rgba(239, 68, 68, 0.3);
+}
+
+/* 隐藏原来的悬浮面板 */
+.edit-panel {
+    display: none;
+}
+
+.generate-btn:hover {
+    box-shadow: 0 6px 16px rgba(0, 186, 124, 0.4);
+    background: linear-gradient(135deg, #00a870 0%, #00784e 100%);
 }
 
 /* 右侧预览区 */
@@ -689,12 +1061,14 @@ body {
     }
 
     .edit-panel {
-        max-width: 390px;
-        width: 100%;
+        max-width: 280px;
+        width: calc(100vw - 40px);
         position: fixed;
-        bottom: 0;
-        right: 0;
-        left: 0;
-        border-radius: 20px 20px 0 0;
+        bottom: 20px;
+        right: 20px;
+        left: auto;
+        border-radius: 16px;
+        max-height: 40vh;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
     }
 }

@@ -14,11 +14,6 @@
         <div class="input-panel">
             <div class="panel-header">
                 <h2>内容创作</h2>
-                <div class="controls">
-                    <label>每页字数: <input type="number" id="maxChars" value="200" min="50" max="1000"
-                            style="width: 60px; padding: 4px;"></label>
-                    <button onclick="document.getElementById('sourceEditor').innerHTML='" class="clear-btn">清空</button>
-                </div>
             </div>
             <div id="sourceEditor" contenteditable="true" class="source-editor" data-placeholder="在此粘贴文章或图片，自动排版...">
             </div>
@@ -51,12 +46,24 @@
                     <input type="text" id="editLikes" value="21" class="data-input">
                 </div>
                 <div class="edit-row">
-                    <label>收藏数:</label>
-                    <input type="text" id="editBookmarks" value="1.3K" class="data-input">
-                </div>
-                <div class="action-row">
-                    <button onclick="updateAllTweetData()" class="update-btn">更新所有推文</button>
-                </div>
+                        <label>收藏数:</label>
+                        <input type="text" id="editBookmarks" value="1.3K" class="data-input">
+                    </div>
+                    <!-- 修改为每页行数设置 -->
+                    <div class="edit-row">
+                        <label>每页行数:</label>
+                        <input type="number" id="maxLines" value="10" min="1" max="30" class="data-input">
+                    </div>
+                    <div class="action-row">
+                        <button onclick="updateAllTweetData()" class="update-btn">更新所有推文</button>
+                        <button onclick="generateRandomTweetData()" class="update-btn generate-btn">随机生成数据</button>
+                    </div>
+                    <div class="action-row secondary-actions">
+                        <button onclick="document.getElementById('avatarInput').click()" class="update-btn avatar-btn">更换头像</button>
+                        <button onclick="exportAllImages()" class="update-btn export-btn">导出图片</button>
+                        <button onclick="toggleDarkMode()" class="update-btn dark-mode-btn">切换风格</button>
+                        <button onclick="document.getElementById('sourceEditor').innerHTML=''" class="update-btn clear-btn">清空内容</button>
+                    </div>
             </div>
         </div>
 
