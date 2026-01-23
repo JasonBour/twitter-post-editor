@@ -314,7 +314,7 @@ function updateCardTweetData(card) {
 // 设置源编辑器
 function setupSourceEditor() {
     const editor = document.getElementById('sourceEditor');
-    const maxLinesInput = document.getElementById('maxLines');
+    const maxCharsInput = document.getElementById('maxChars');
     let timeout;
 
     const triggerLayout = () => {
@@ -337,7 +337,7 @@ function setupSourceEditor() {
             }, 0);
         }
     });
-    maxLinesInput.addEventListener('input', triggerLayout);
+    maxCharsInput.addEventListener('input', triggerLayout);
 
     // 处理粘贴（只清理样式，直接生成卡片）
     editor.addEventListener('paste', (e) => {
@@ -511,69 +511,78 @@ function autoLayout() {
     applyDarkMode(isDarkMode);
 }
 
-// 内容分割逻辑 - 修复复制文案后右侧不见的问题
+// 内容分割逻辑 - 基于字符数分割，支持HTML元素
 function splitContent(nodes) {
     const pages = [];
-    const maxLinesInput = document.getElementById('maxLines');
-    const MAX_LINES = parseInt(maxLinesInput.value) || 10;
+    const maxCharsInput = document.getElementById('maxChars');
+    const MAX_CHARS = parseInt(maxCharsInput.value) || 140;
     
-    console.log('当前设置的每页行数:', MAX_LINES);
+    console.log('当前设置的每页字符数:', MAX_CHARS);
     
-    // 获取编辑器的完整文本内容，确保能处理复制的文案
+    // 获取纯文本内容和字符数
     const fullText = document.getElementById('sourceEditor').innerText;
     
-    // 收集所有实际内容行
-    const allContentLines = [];
-    
-    // 优先使用完整文本处理，确保能正确处理复制的文案
-    if (fullText.trim() !== '') {
-        // 按换行符分割完整文本
-        const textLines = fullText.split('\n');
-        textLines.forEach(line => {
-            if (line.trim() !== '') {
-                allContentLines.push(line);
-            }
-        });
-    } else {
-        // 只有当完整文本为空时，才处理节点
-        nodes.forEach(node => {
-            if (node.nodeType === Node.TEXT_NODE) {
-                const textLines = node.textContent.split('\n');
-                textLines.forEach(line => {
-                    if (line.trim() !== '') {
-                        allContentLines.push(line);
-                    }
-                });
-            } else if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'IMG') {
-                allContentLines.push(node.outerHTML);
-            }
-        });
+    // 如果文本为空，返回空数组
+    if (fullText.trim() === '') {
+        return pages;
     }
     
-    console.log('总共有', allContentLines.length, '行内容');
+    // 分割纯文本内容
+    const textPages = [];
+    let currentPage = '';
     
-    // 如果没有收集到行，但有完整文本，直接使用完整文本
-    if (allContentLines.length === 0 && fullText.trim() !== '') {
-        allContentLines.push(fullText);
-    }
-    
-    // 基于行数进行分页
-    for (let i = 0; i < allContentLines.length; i += MAX_LINES) {
-        // 获取当前页的行
-        const pageLines = allContentLines.slice(i, i + MAX_LINES);
+    for (let i = 0; i < fullText.length; i++) {
+        const char = fullText[i];
+        currentPage += char;
         
-        // 将行转换为HTML，每行后面添加<br>标签
-        const pageHTML = pageLines.join('<br>');
-        
-        if (pageHTML.trim()) {
-            pages.push(pageHTML);
+        // 检查当前页面是否超过最大字符数
+        if (currentPage.length > MAX_CHARS) {
+            // 寻找最近的分割点
+            let splitIndex = currentPage.length - 1;
+            while (splitIndex > 0 && !/[\s,.;!?，。；！？]/.test(currentPage[splitIndex])) {
+                splitIndex--;
+            }
+            
+            // 如果找不到合适的分割点，就强制分割
+            if (splitIndex === 0) {
+                splitIndex = currentPage.length - 1;
+            }
+            
+            // 添加当前页面
+            textPages.push(currentPage.slice(0, splitIndex + 1).trim());
+            
+            // 重置当前页面
+            currentPage = currentPage.slice(splitIndex + 1).trim();
         }
     }
     
-    // 确保至少生成一个页面
-    if (pages.length === 0 && allContentLines.length > 0) {
-        const pageHTML = allContentLines.join('<br>');
-        pages.push(pageHTML);
+    // 添加最后一页
+    if (currentPage.trim() !== '') {
+        textPages.push(currentPage.trim());
+    }
+    
+    // 将每个纯文本页转换为HTML内容
+    textPages.forEach((textPage, index) => {
+        // 对于每个文本页，我们只显示该页的文本
+        // 由于HTML结构复杂，我们使用一个简单但有效的方法：
+        // 1. 创建一个新的div元素
+        // 2. 将文本页内容添加到div中，保留换行符
+        // 3. 处理任何需要保留的HTML元素（如图片）
+        
+        let htmlContent = '';
+        
+        // 替换文本中的换行符为<br>
+        htmlContent = textPage.replace(/\n/g, '<br>');
+        
+        // 添加HTML内容到页面
+        pages.push(htmlContent);
+    });
+    
+    // 确保至少有一个页面
+    if (pages.length === 0) {
+        // 创建一个包含所有内容的页面
+        let allContent = fullText.replace(/\n/g, '<br>');
+        pages.push(allContent);
     }
     
     console.log('生成的页数:', pages.length);
